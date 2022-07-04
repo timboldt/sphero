@@ -8,6 +8,7 @@ import time
 from adafruit_display_text import label
 import adafruit_displayio_sh1107
 from adafruit_servokit import ServoKit
+import adafruit_vl53l4cd
 
 # SH1107 is vertically oriented 64x128
 WIDTH = 128
@@ -30,6 +31,23 @@ time.sleep(1)
 kit.servo[0].angle = 90
 kit.servo[1].angle = 90
 
+vl53 = adafruit_vl53l4cd.VL53L4CD(i2c)
+
+# OPTIONAL: can set non-default values
+vl53.inter_measurement = 0
+vl53.timing_budget = 200
+
+print("VL53L4CD Simple Test.")
+print("--------------------")
+model_id, module_type = vl53.model_info
+print("Model ID: 0x{:0X}".format(model_id))
+print("Module Type: 0x{:0X}".format(module_type))
+print("Timing Budget: {}".format(vl53.timing_budget))
+print("Inter-Measurement: {}".format(vl53.inter_measurement))
+print("--------------------")
+
+vl53.start_ranging()
+
 # Make the display context
 splash = displayio.Group()
 display.show(splash)
@@ -37,31 +55,6 @@ display.show(splash)
 color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
 color_palette = displayio.Palette(1)
 color_palette[0] = 0xFFFFFF  # White
-
-bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
-splash.append(bg_sprite)
-
-# Draw a smaller inner rectangle in black
-inner_bitmap = displayio.Bitmap(WIDTH - BORDER * 2, HEIGHT - BORDER * 2, 1)
-inner_palette = displayio.Palette(1)
-inner_palette[0] = 0x000000  # Black
-inner_sprite = displayio.TileGrid(
-    inner_bitmap, pixel_shader=inner_palette, x=BORDER, y=BORDER
-)
-splash.append(inner_sprite)
-
-# Draw some white squares
-sm_bitmap = displayio.Bitmap(8, 8, 1)
-sm_square = displayio.TileGrid(sm_bitmap, pixel_shader=color_palette, x=58, y=17)
-splash.append(sm_square)
-
-med_bitmap = displayio.Bitmap(16, 16, 1)
-med_square = displayio.TileGrid(med_bitmap, pixel_shader=color_palette, x=71, y=15)
-splash.append(med_square)
-
-lrg_bitmap = displayio.Bitmap(32, 32, 1)
-lrg_square = displayio.TileGrid(lrg_bitmap, pixel_shader=color_palette, x=91, y=28)
-splash.append(lrg_square)
 
 # Draw some label text
 text1 = "0123456789ABCDEF123456789AB"  # overly long to see where it clips
@@ -74,4 +67,7 @@ text_area2 = label.Label(
 splash.append(text_area2)
 
 while True:
-    pass
+    while not vl53.data_ready:
+        pass
+    vl53.clear_interrupt()
+    text_area.text = "Distance: {} cm".format(vl53.distance)

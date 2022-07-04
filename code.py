@@ -25,15 +25,8 @@ display = adafruit_displayio_sh1107.SH1107(
 )
 
 kit = ServoKit(channels=8)
-kit.servo[0].angle = 60
-kit.servo[1].angle = 45
-time.sleep(1)
-kit.servo[0].angle = 90
-kit.servo[1].angle = 90
 
 vl53 = adafruit_vl53l4cd.VL53L4CD(i2c)
-
-# OPTIONAL: can set non-default values
 vl53.inter_measurement = 0
 vl53.timing_budget = 200
 
@@ -66,8 +59,16 @@ text_area2 = label.Label(
 )
 splash.append(text_area2)
 
+pitch = 90
+yaw = 90
+
 while True:
     while not vl53.data_ready:
         pass
     vl53.clear_interrupt()
     text_area.text = "Distance: {} cm".format(vl53.distance)
+    kit.servo[0].angle = pitch
+    kit.servo[1].angle = yaw
+    yaw = yaw + 10
+    if yaw > 180:
+        yaw = 0
